@@ -21,7 +21,11 @@ def main():
     node_cube = Node(base, I)
     node_diamond = Node(node_cube, I)
     
+    node_camera_center_diamond = Node(None, I)
+    node_camera_center_diamond.set_transform(glm.translate(camera.current_center))
+    
     base.update_tree_global_transform()
+    node_camera_center_diamond.update_tree_global_transform()
     
     # initialize objects
     
@@ -29,6 +33,8 @@ def main():
     frame_world = Frame(camera, perspective, base)
     cube = Cube(glm.vec3(0.8, 0.35, 0.35), camera, perspective, light, node_cube, .3)
     diamond = Diamond(glm.vec3(0.35, 0.55, 0.8), camera, perspective, light, node_diamond, .3)
+    
+    camera_center_diamond = Diamond(glm.vec3(0.45, 0.70, 0.45), camera, perspective, light, node_camera_center_diamond, .1)
     
     prev_t = glfwGetTime()
 
@@ -78,13 +84,16 @@ def main():
         # frame_cube.draw()
         node_cube.set_transform(M_cube)
         node_diamond.set_transform(M_diamond)
+        node_camera_center_diamond.set_transform(M_camera_center_diamond)
         
         base.update_tree_global_transform()
+        node_camera_center_diamond.update_tree_global_transform()
 
         frame_world.draw()
         grid.draw()
         cube.draw()
         diamond.draw()
+        camera_center_diamond.draw()
         
         # frame_diamond.update_MVP(M_diamond)
         # frame_diamond.draw()
