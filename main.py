@@ -260,8 +260,8 @@ def main():
 
         # draw
         frame_world.draw()
-        grid.draw()
-        camera_center_diamond.draw()
+        if window.grid_enabled: grid.draw()
+        if camera.center_enabled: camera_center_diamond.draw()
         
         city.draw()
         drone1.draw()
