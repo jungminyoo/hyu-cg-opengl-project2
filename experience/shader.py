@@ -1,12 +1,17 @@
 from OpenGL.GL import *
 
+from .uniform import Uniform
+
 class Shader:
     '''class for managing single shader'''
     
-    def __init__(self, vertex_shader_src: str, fragment_shader_src: str):
+    def __init__(self, vertex_shader_src: str, fragment_shader_src: str, uniforms: list[Uniform]):
         self._vertex_shader = vertex_shader_src
         self._fragment_shader = fragment_shader_src
         self._shader_program = self._load_shaders()
+        self._uniforms = uniforms
+        for uniform in self._uniforms: 
+            uniform.location = self._get_uniform_location(uniform.name)
 
     def _load_shaders(self):
         # build and compile our shader program
@@ -51,7 +56,7 @@ class Shader:
 
         return shader_program    # return the shader program
     
-    def get_uniform_location(self, uniform_name: str) -> int:
+    def _get_uniform_location(self, uniform_name: str) -> int:
         return glGetUniformLocation(self.shader_program, uniform_name)
     
     def use_program(self):

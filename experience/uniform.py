@@ -1,16 +1,14 @@
 from typing import Generic, TypeVar
 
-from .shader import Shader
-
 UniformType = TypeVar('UniformType')
 
 class Uniform(Generic[UniformType]):
     '''class for single uniform in single shader program'''
     
-    def __init__(self, name: str, init_data: UniformType, shader: Shader):
+    def __init__(self, name: str, init_data: UniformType):
         self._name = name
         self._data = init_data
-        self._location = shader.get_uniform_location(name)
+        self._location = None
 
     @property
     def name(self): return self._name
@@ -22,3 +20,5 @@ class Uniform(Generic[UniformType]):
 
     @property
     def location(self): return self._location
+    @location.setter
+    def location(self, new_location: int): self._location = new_location

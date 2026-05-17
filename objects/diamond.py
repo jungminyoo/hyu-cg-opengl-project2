@@ -2,84 +2,72 @@ from OpenGL.GL import *
 import glm
 
 from .object import Object
-from experience import Shader
+from experience import Light, Node
 from projections import Projection
 from cameras import Camera
 
+
 class Diamond(Object):
-    '''class for single diamond object'''
-    
-    def __init__(self, init_V: glm.mat4x4, camera: Camera, projection: Projection, shader: Shader, half_extent: float, color: glm.vec3):
-        super().__init__(init_V, camera, projection, shader)
-        
-        self._half_extent = half_extent
-        self._color = color
-        self._VAO = self._prepare_vao()
-    
-    def _prepare_vao(self) -> int | list[int]: 
-        # prepare vertex data (in main memory)
-        # 36 vertices for 12 triangles
-        vertices = glm.array(glm.float32,
-            # position                                                          color
-            -self._half_extent, 0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            self._half_extent,  0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            0,                  self._half_extent * 2,  0,                      self._color.x, self._color.y, self._color.z,
-                        
-            self._half_extent,  0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            self._half_extent,  0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            0,                  self._half_extent * 2,  0,                      self._color.x, self._color.y, self._color.z,
-                        
-            self._half_extent,  0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            -self._half_extent, 0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            0,                  self._half_extent * 2,  0,                      self._color.x, self._color.y, self._color.z,
-                        
-            -self._half_extent, 0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            -self._half_extent, 0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            0,                  self._half_extent * 2,  0,                      self._color.x, self._color.y, self._color.z,
-                        
-            -self._half_extent, 0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            self._half_extent,  0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            0,                  -self._half_extent * 2, 0,                      self._color.x, self._color.y, self._color.z,
-                        
-            self._half_extent,  0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            self._half_extent,  0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            0,                  -self._half_extent * 2, 0,                      self._color.x, self._color.y, self._color.z,
-                        
-            self._half_extent,  0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            -self._half_extent, 0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            0,                  -self._half_extent * 2, 0,                      self._color.x, self._color.y, self._color.z,
-                        
-            -self._half_extent, 0,                      -self._half_extent,     self._color.x, self._color.y, self._color.z,
-            -self._half_extent, 0,                      self._half_extent,      self._color.x, self._color.y, self._color.z,
-            0,                  -self._half_extent * 2, 0,                      self._color.x, self._color.y, self._color.z,
-                        
+    """class for single diamond object"""
+
+    def __init__(
+        self,
+        material_color: glm.vec3,
+        camera: Camera,
+        projection: Projection,
+        light: Light,
+        node: Node,
+        half_extent: float,
+    ):
+        super().__init__(
+            material_color,
+            camera,
+            projection,
+            light,
+            node,
+            True
         )
 
-        # create and activate VAO (vertex array object)
-        VAO = glGenVertexArrays(1)  # create a vertex array object ID and store it to VAO variable
-        glBindVertexArray(VAO)      # activate VAO
+        self._half_extent = half_extent
 
-        # create and activate VBO (vertex buffer object)
-        VBO = glGenBuffers(1)   # create a buffer object ID and store it to VBO variable
-        glBindBuffer(GL_ARRAY_BUFFER, VBO)  # activate VBO as a vertex buffer object
+        h = self._half_extent
+        top = glm.vec3(0, h * 2, 0)
+        bottom = glm.vec3(0, -h * 2, 0)
 
-        # copy vertex data to VBO
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices.ptr, GL_STATIC_DRAW) # allocate GPU memory for and copy vertex data to the currently bound vertex buffer
+        v0 = glm.vec3(-h, 0, h)
+        v1 = glm.vec3(h, 0, h)
+        v2 = glm.vec3(h, 0, -h)
+        v3 = glm.vec3(-h, 0, -h)
 
-        # configure vertex positions
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * glm.sizeof(glm.float32), None)
-        glEnableVertexAttribArray(0)
+        data = []
 
-        # configure vertex colors
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * glm.sizeof(glm.float32), ctypes.c_void_p(3*glm.sizeof(glm.float32)))
-        glEnableVertexAttribArray(1)
+        # upper pyramid
+        data += self._tri(v0, v1, top)
+        data += self._tri(v1, v2, top)
+        data += self._tri(v2, v3, top)
+        data += self._tri(v3, v0, top)
 
-        return VAO
-    
+        # lower pyramid
+        data += self._tri(v1, v0, bottom)
+        data += self._tri(v2, v1, bottom)
+        data += self._tri(v3, v2, bottom)
+        data += self._tri(v0, v3, bottom)
+
+        self._vertices = glm.array(glm.float32, *data)
+
+        self._VAO = self._prepare_vao()
+
+    def _normal(self, a: glm.vec3, b: glm.vec3, c: glm.vec3) -> glm.vec3:
+        return glm.normalize(glm.cross(b - a, c - a))
+
+    def _tri(self, a: glm.vec3, b: glm.vec3, c: glm.vec3):
+        n = self._normal(a, b, c)
+        return [
+            a.x, a.y, a.z, n.x, n.y, n.z,
+            b.x, b.y, b.z, n.x, n.y, n.z,
+            c.x, c.y, c.z, n.x, n.y, n.z,
+        ]
+
     def draw(self):
-        glBindVertexArray(self.VAO)
-        glUniformMatrix4fv(self._MVP.location, 1, GL_FALSE, glm.value_ptr(self._MVP.data))
+        super().draw()
         glDrawArrays(GL_TRIANGLES, 0, 24)
-    
-    @property
-    def VAO(self): return self._VAO

@@ -1,22 +1,18 @@
 from OpenGL.GL import *
 import glm
 
-from .object import Object
-from experience import Shader
+from .object import ObjectWithoutLight
 from projections import Projection
 from cameras import Camera
+from experience import Node
 
-class Frame(Object):
+class Frame(ObjectWithoutLight):
     '''class for frame'''
     
-    def __init__(self, init_V: glm.mat4x4, camera: Camera, projection: Projection, shader: Shader):
-        super().__init__(init_V, camera, projection, shader)
+    def __init__(self, camera: Camera, projection: Projection, node: Node):
+        super().__init__(camera, projection, node, True)
         
-        self._VAO = self._prepare_vao()
-
-    def _prepare_vao(self) -> int | list[int]:
-        # prepare vertex data (in main memory)
-        vertices = glm.array(glm.float32,
+        self._vertices = glm.array(glm.float32,
             # position        # color
             0.0, 0.0, 0.0,  1.0, 0.0, 0.0, # x-axis start
             1.0, 0.0, 0.0,  1.0, 0.0, 0.0, # x-axis end 
@@ -25,32 +21,9 @@ class Frame(Object):
             0.0, 0.0, 0.0,  0.0, 0.0, 1.0, # z-axis start
             0.0, 0.0, 1.0,  0.0, 0.0, 1.0, # z-axis end 
         )
-
-        # create and activate VAO (vertex array object)
-        VAO = glGenVertexArrays(1)  # create a vertex array object ID and store it to VAO variable
-        glBindVertexArray(VAO)      # activate VAO
-
-        # create and activate VBO (vertex buffer object)
-        VBO = glGenBuffers(1)   # create a buffer object ID and store it to VBO variable
-        glBindBuffer(GL_ARRAY_BUFFER, VBO)  # activate VBO as a vertex buffer object
-
-        # copy vertex data to VBO
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices.ptr, GL_STATIC_DRAW) # allocate GPU memory for and copy vertex data to the currently bound vertex buffer
-
-        # configure vertex positions
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * glm.sizeof(glm.float32), None)
-        glEnableVertexAttribArray(0)
-
-        # configure vertex colors
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * glm.sizeof(glm.float32), ctypes.c_void_p(3*glm.sizeof(glm.float32)))
-        glEnableVertexAttribArray(1)
-
-        return VAO
+        
+        self._VAO = self._prepare_vao()
 
     def draw(self):
-        glBindVertexArray(self.VAO)
-        glUniformMatrix4fv(self._MVP.location, 1, GL_FALSE, glm.value_ptr(self._MVP.data))
+        super().draw()
         glDrawArrays(GL_LINES, 0, 6)
-
-    @property
-    def VAO(self): return self._VAO

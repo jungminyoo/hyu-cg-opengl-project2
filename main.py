@@ -5,66 +5,30 @@ import numpy as np
 
 from cameras import OrbitCamera
 from projections import PerspectiveProjection
-from experience import Uniform, Shader, Window
+from experience import Window, Light, Node
 from objects import Cube, Diamond, Frame, Grid
-
-global_vertex_shader_src = '''
-#version 330 core
-
-layout (location = 0) in vec3 vin_pos; 
-layout (location = 1) in vec3 vin_color; 
-
-out vec4 vout_color;
-
-uniform mat4 MVP;
-
-void main()
-{
-    // 3D points in homogeneous coordinates
-    vec4 p3D_in_hcoord = vec4(vin_pos.xyz, 1.0);
-
-    gl_Position = MVP * p3D_in_hcoord;
-
-    vout_color = vec4(vin_color, 1.);
-}
-'''
-
-global_fragment_shader_src = '''
-#version 330 core
-
-in vec4 vout_color;
-
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vout_color;
-}
-'''
 
 def main():
     # initialize environments
     camera = OrbitCamera(45, 60, 10)
     perspective = PerspectiveProjection(1080, 1080, 45, .1, 50)
-    window = Window(1080, 1080, "Project 1", perspective, camera)
-    shader = Shader(global_vertex_shader_src, global_fragment_shader_src)
+    window = Window(1080, 1080, "Project 2", perspective, camera)
+    light = Light(glm.vec3(5, 5, 5), glm.vec3(1, 1, 1))
 
-    # initialize objects
+    # initialize nodes
     I = glm.mat4()              # identity matrix
-    M_cube = glm.mat4()         # initial M matrix of cube
-    M_diamond = glm.mat4()      # initial M matrix of diamond
-    M_camera_center_diamond = glm.translate(camera.current_center)  # initial M matrix of camera center diamond
+    base = Node(None, I)
+    node_cube = Node(base, I)
+    node_diamond = Node(node_cube, I)
     
-    frame_world = Frame(I, camera, perspective, shader)
-    grid = Grid(I, camera, perspective, shader, 5, 5)
+    base.update_tree_global_transform()
     
-    frame_cube = Frame(M_cube, camera, perspective, shader)
-    cube = Cube(M_cube, camera, perspective, shader, .3, glm.vec3(0.8, 0.35, 0.35))
+    # initialize objects
     
-    frame_diamond = Frame(M_diamond, camera, perspective, shader)
-    diamond = Diamond(M_cube, camera, perspective, shader, .3, glm.vec3(0.35, 0.55, 0.8))
-    
-    camera_center_diamond = Diamond(M_camera_center_diamond, camera, perspective, shader, .1, glm.vec3(0.45, 0.70, 0.45))
+    grid = Grid(camera, perspective, base, 5, 5)
+    frame_world = Frame(camera, perspective, base)
+    cube = Cube(glm.vec3(0.8, 0.35, 0.35), camera, perspective, light, node_cube, .3)
+    diamond = Diamond(glm.vec3(0.35, 0.55, 0.8), camera, perspective, light, node_diamond, .3)
     
     prev_t = glfwGetTime()
 
@@ -77,8 +41,6 @@ def main():
         # update polygon mode (GL_FILL or GL_LINE)
         glPolygonMode(GL_FRONT_AND_BACK, window.current_polygon_mode)
 
-        shader.use_program()    # enable shader and uniforms
-        
         # update M matrices
         
         # animating
@@ -101,29 +63,36 @@ def main():
         
         # final transformations
         M_cube = T_xz * R_x
-        M_diamond = T_xy * T_xz * R_y
+        M_diamond = T_xy * R_y
         M_camera_center_diamond = glm.translate(camera.current_center) * T_float
         
         camera.update(delta)         # update V matrix
 
         # apply to objects
-        frame_world.update_MVP(I)
+        # frame_world.update_MVP(I)
+        # frame_world.draw()
+        # grid.update_MVP(I)
+        # if window.grid_enabled: grid.draw()
+        
+        # frame_cube.update_MVP(M_cube)
+        # frame_cube.draw()
+        node_cube.set_transform(M_cube)
+        node_diamond.set_transform(M_diamond)
+        
+        base.update_tree_global_transform()
+
         frame_world.draw()
-        grid.update_MVP(I)
-        if window.grid_enabled: grid.draw()
-        
-        frame_cube.update_MVP(M_cube)
-        frame_cube.draw()
-        cube.update_MVP(M_cube)
+        grid.draw()
         cube.draw()
-        
-        frame_diamond.update_MVP(M_diamond)
-        frame_diamond.draw()
-        diamond.update_MVP(M_diamond)
         diamond.draw()
         
-        camera_center_diamond.update_MVP(M_camera_center_diamond)
-        if camera.center_enabled: camera_center_diamond.draw()
+        # frame_diamond.update_MVP(M_diamond)
+        # frame_diamond.draw()
+        # diamond.update_MVP(M_diamond)
+        # diamond.draw()
+        
+        # camera_center_diamond.update_MVP(M_camera_center_diamond)
+        # if camera.center_enabled: camera_center_diamond.draw()
         
         window.update()         # update window
 

@@ -55,14 +55,17 @@ class OrbitCamera(Camera):
         self._current_center = glm.mix(self._current_center, self._target_center, lerping_alpha)
         self._current_radius = glm.mix(self._current_radius, self._target_radius, lerping_alpha)
         
-        self._V.matrix = glm.lookAt(
-            self._current_center    # for panning
-            + 
-            glm.vec3(               # for rotation and zoom
+        self._view_pos.data = (
+            self._current_center + # for panning
+            glm.vec3(       
                 self._current_radius * np.sin(self._current_spherical_angle.y) * np.sin(self._current_spherical_angle.x),
                 self._current_radius * np.cos(self._current_spherical_angle.y),
                 self._current_radius * np.sin(self._current_spherical_angle.y) * np.cos(self._current_spherical_angle.x)
-            ), 
+            ) # for rotation and zoom
+        )
+        
+        self._V.matrix = glm.lookAt(
+            self._view_pos.data, 
             self._current_center, 
             glm.vec3(0,1,0)
         )
