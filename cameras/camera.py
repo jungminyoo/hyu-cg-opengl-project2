@@ -9,7 +9,7 @@ class Camera(ABC):
     def __init__(self):
         super().__init__()
         
-        self._view_pos = Uniform[glm.vec3]("light_pos", glm.vec3())
+        self._view_pos = Uniform[glm.vec3]("view_pos", glm.vec3())
 
     @abstractmethod
     def update(self, delta: int): pass
